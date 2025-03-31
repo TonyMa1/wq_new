@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alpha_gen"
+version = "0.1.0"
+description = "Alpha expression generator and manager for WorldQuant Brain"
+readme = "README.md"
+authors = [
+    {name = "TonyMa1", email = "your-email@example.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "pandas>=1.3.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.1.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+]
+
+[project.scripts]
+generate-alphas = "scripts.generate_alphas:main"
+polish-alphas = "scripts.polish_alphas:main"
+mine-expressions = "scripts.mine_expressions:main"
+submit-alphas = "scripts.submit_alphas:main"
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.setuptools]
+packages = ["alpha_gen"]
