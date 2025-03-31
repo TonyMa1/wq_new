@@ -182,11 +182,16 @@ class WorldQuantClient:
             RateLimitError: If rate limits are hit
             WorldQuantError: For other API errors
         """
-        url = f"{self.BASE_URL}{endpoint}"
+        if endpoint.startswith(('http://', 'https://')):
+            url = endpoint  # Use the endpoint directly if it's absolute
+        else:
+            url = f"{self.BASE_URL}{endpoint}"  # Otherwise, prepend the base URL
+            
         request_func = getattr(self.session, method.lower())
         
         for attempt in range(self.max_retries):
             try:
+                # Use the correctly determined url variable
                 response = request_func(
                     url,
                     json=json_data,
@@ -383,13 +388,47 @@ class WorldQuantClient:
         logger.info(f"Monitoring simulation: {progress_url}")
         
         for attempt in range(max_attempts):
-            response = self._make_request('get', progress_url, handle_retry_after=True)
-            
-            # If the progress endpoint returns Retry-After, honor it
-            if 'Retry-After' in response.headers:
-                retry_after = int(response.headers.get('Retry-After', poll_interval))
-                logger.debug(f"Simulation in progress, retrying after {retry_after}s")
-                time.sleep(retry_after)
+            # Set handle_retry_after=False as we will handle it explicitly here
+            response = self._make_request('get', progress_url, handle_retry_after=False)
+
+            # --- Start Modification ---
+            # First, check if the response object itself is valid
+            if response is None:
+                logger.warning(f"Monitoring request failed for {progress_url}. Retrying after {poll_interval}s.")
+                time.sleep(poll_interval)
+                continue
+
+            # Handle rate limiting specifically within monitoring
+            if response.status_code == 429 and 'Retry-After' in response.headers:
+                retry_after_value = response.headers.get('Retry-After')
+                try:
+                    # Convert to float, sleep uses float seconds
+                    retry_after_seconds = float(retry_after_value)
+                    logger.warning(f"Rate limited during monitoring. Waiting {retry_after_seconds:.1f} seconds (Retry-After: {retry_after_value})...")
+                    time.sleep(retry_after_seconds)
+                    continue # Retry the request
+                except (ValueError, TypeError):
+                    logger.warning(f"Could not parse Retry-After header value: {retry_after_value}. Using default poll interval {poll_interval}s.")
+                    time.sleep(poll_interval)
+                    continue # Retry the request
+
+            # Handle unexpected status codes other than rate limit
+            if response.status_code != 200 and response.status_code != 202: # 202 Accepted might also mean processing
+                 # Check if simulation is still initializing based on empty response
+                 if not response.text.strip() and response.status_code == 204: # Check specifically for 204 No Content
+                     logger.debug(f"Simulation still initializing (status {response.status_code}, attempt {attempt+1}/{max_attempts})")
+                     time.sleep(poll_interval)
+                     continue
+                 # Log other unexpected statuses before trying to parse JSON
+                 logger.warning(f"Unexpected status {response.status_code} while monitoring {progress_url}. Content: {response.text[:200]}. Retrying...")
+                 time.sleep(poll_interval)
+                 continue
+            # --- End Modification ---
+
+            # Handle empty response (simulation still initializing - keep this check too)
+            if not response.text.strip():
+                logger.debug(f"Simulation still initializing (empty response, attempt {attempt+1}/{max_attempts})")
+                time.sleep(poll_interval)
                 continue
             
             # Handle empty response (simulation still initializing)

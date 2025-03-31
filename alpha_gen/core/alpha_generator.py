@@ -179,7 +179,8 @@ class AlphaGenerator:
                     # Create Alpha object
                     alpha = Alpha(
                         expression=expr,
-                        settings=Alpha.SimulationSettings(
+                        settings=SimulationSettings(
+                            region=region,
                             universe=universe
                         )
                     )
@@ -297,7 +298,12 @@ class AlphaGenerator:
                 settings=settings
             )
             
-            # Update alpha with results if available
+            # Explicitly check if the simulation failed and returned None
+            if result is None:
+                logger.error(f"Simulation returned None for {alpha.expression[:50]}..., likely failed internally.")
+                return None # Return None to indicate failure
+            
+            # Update alpha with results if available (safe now, result is not None)
             if "alpha_details" in result and result["alpha_details"]:
                 alpha_details = result["alpha_details"]
                 alpha.id = alpha_details.get("id")
@@ -312,7 +318,12 @@ class AlphaGenerator:
             return result
             
         except WorldQuantError as e:
-            logger.error(f"Simulation failed for {alpha.expression[:50]}...: {str(e)}")
+            # This catches errors explicitly raised by wq_client methods during simulation/monitoring
+            logger.error(f"Simulation failed for {alpha.expression[:50]}... (WorldQuantError): {str(e)}")
+            return None
+        except Exception as e:
+            # Catch any other unexpected errors during this process
+            logger.exception(f"Unexpected error during test_expression for {alpha.expression[:50]}...: {str(e)}")
             return None
     
     def generate_parameter_variations(

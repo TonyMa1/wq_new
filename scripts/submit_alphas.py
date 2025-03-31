@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from alpha_gen.api.wq_client import WorldQuantClient, WorldQuantError
 from alpha_gen.core.alpha_submitter import AlphaSubmitter, AlphaSubmitterError
-from alpha_gen.models.alpha import Alpha
+from alpha_gen.models.alpha import Alpha, SimulationResult, SimulationSettings
 from alpha_gen.utils.logging import setup_logging, get_logger
 from alpha_gen.utils.config import Config
 
@@ -94,7 +94,7 @@ def load_alphas(input_path):
                     alphas.append(Alpha(
                         id=item['id'],
                         expression=item.get('expression', ''),
-                        settings=Alpha.SimulationSettings.from_api_format(settings)
+                        settings=SimulationSettings.from_api_format(settings)
                     ))
                 elif 'alpha_id' in item:
                     # Alpha result with ID
@@ -115,7 +115,7 @@ def load_alphas(input_path):
                     alphas.append(Alpha(
                         id=item['id'],
                         expression=item.get('expression', ''),
-                        settings=Alpha.SimulationSettings.from_api_format(settings)
+                        settings=SimulationSettings.from_api_format(settings)
                     ))
                 elif 'alpha_id' in item:
                     # Alpha result with ID
