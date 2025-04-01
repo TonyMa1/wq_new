@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from alpha_gen.api.wq_client import WorldQuantClient, WorldQuantError
 from alpha_gen.api.ai_client import AIClient, AIClientError
 from alpha_gen.core.alpha_polisher import AlphaPolisher, AlphaPolisherError
-from alpha_gen.models.alpha import Alpha
+from alpha_gen.models.alpha import Alpha, SimulationSettings
 from alpha_gen.utils.logging import setup_logging, get_logger
 from alpha_gen.utils.config import Config
 
@@ -153,7 +153,7 @@ def main():
         # Create Alpha objects
         alphas = []
         for expr in expressions:
-            settings = Alpha.SimulationSettings(
+            settings = SimulationSettings(
                 region=args.region,
                 universe=args.universe
             )
